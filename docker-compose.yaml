@@ -8,6 +8,23 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  etl:
+    build: .
+    container_name: taxi-etl
+    env_file:
+      - .env.postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - etl_data:/app/data
 
 volumes:
   postgres_data:
+  etl_data:
