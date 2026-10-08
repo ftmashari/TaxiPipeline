@@ -63,3 +63,46 @@ def transform(input_file: Path, output_file: Path) -> None:
         f"Processed {len(df):,} rows → "
         f"{output_file.name}"
     )
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        "--year",
+        type=int,
+        required=True,
+    )
+
+    parser.add_argument(
+        "--month",
+        type=int,
+        required=True,
+    )
+
+    args = parser.parse_args()
+
+    filename = f"yellow_tripdata_{args.year}-{args.month:02d}.parquet"
+
+    input_file = (
+        Path(__file__).resolve().parents[2]
+        / "data"
+        / "raw"
+        / "yellow"
+        / filename
+    )
+
+    output_file = (
+        Path(__file__).resolve().parents[2]
+        / "data"
+        / "processed"
+        / "yellow"
+        / filename
+    )
+
+    if output_file.exists():
+        print(f"Already processed: {filename}")
+    else:
+        transform(input_file, output_file)

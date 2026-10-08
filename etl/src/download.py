@@ -43,17 +43,17 @@ def download_month(year: int, month: int) -> Path | None:
     return output_path
 
 
-def download_year(year: int) -> list[Path]:
-    downloaded_files = []
+# def download_year(year: int) -> list[Path]:
+#     downloaded_files = []
 
-    for month in range(1, 13):
-        try:
-            path = download_month(year, month)
-            downloaded_files.append(path)
-        except requests.HTTPError as e:
-            print(f"Could not download {year}-{month:02d}: {e}")
+#     for month in range(1, 13):
+#         try:
+#             path = download_month(year, month)
+#             downloaded_files.append(path)
+#         except requests.HTTPError as e:
+#             print(f"Could not download {year}-{month:02d}: {e}")
 
-    return downloaded_files
+#     return downloaded_files
 
 
 if __name__ == "__main__":
@@ -64,8 +64,12 @@ if __name__ == "__main__":
         required=True,
         )
 
+    parser.add_argument(
+        "--month",
+        type=int,
+        required=True,
+    )
+
     args = parser.parse_args()
     
-    download_year(
-        year=args.year,
-        )
+    download_month(args.year, args.month)

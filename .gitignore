@@ -1,8 +1,12 @@
 .venv/
+.airflow-venv/
 __pycache__/
 *.pyc
 
 data/
+airflow/*
+!airflow/dags/
+*/archive/*
 
 .env
 .env.postgres

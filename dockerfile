@@ -8,4 +8,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY etl/src ./etl/src
 
-CMD ["python", "etl/src/main.py", "--year", "2026", "--month", "7"]
+CMD ["python", "etl/src/main.py"]
