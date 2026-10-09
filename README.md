@@ -154,3 +154,10 @@ The `processed_source_months` exists to avoid redownloading and reprocessing alr
 - The workflow is intentionally built to be resilient to repeated runs.
 - Data is kept in the shared persistent volume, which is reused across tasks.
 - The `ON CONFLICT ... DO NOTHING` pattern prevents duplicate month markers when a source month is already marked as processed.
+
+## To do
+- Add backfill option
+- Add tests
+- Add GitHub Actions
+- Migrate to AWS
+- Use Terraform for resources
