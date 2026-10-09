@@ -2,6 +2,8 @@ from datetime import datetime
 
 from airflow import DAG
 from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
+from airflow.providers.standard.operators.python import BranchPythonOperator
+from airflow.providers.standard.operators.empty import EmptyOperator
 
 from pod_settings import (
     COMMANDS,
@@ -10,6 +12,20 @@ from pod_settings import (
     POSTGRES_ENV_VARS,
     SHARED_ARGS,
 )
+
+
+def choose_pipeline_path(ti):
+    result = ti.xcom_pull(task_ids="find_latest_available")
+
+    if not result:
+        raise ValueError("Discovery task returned no XCom result.")
+
+    if result.get("process") is True:
+        return "download"
+
+    print(f"No new data to process: {result.get('reason')}")
+    return "no_new_data"
+
 
 with DAG(
     dag_id="taxi_pipeline",
@@ -23,8 +39,18 @@ with DAG(
         task_id="find_latest_available",
         name="taxi-find-latest",
         cmds=COMMANDS["find_latest_available"],
+        env_vars=POSTGRES_ENV_VARS,
         do_xcom_push=True,
         **COMMON_KPO_ARGS,
+    )
+    
+    check_for_new_data = BranchPythonOperator(
+        task_id="check_for_new_data",
+        python_callable=choose_pipeline_path,
+    )
+    
+    no_new_data = EmptyOperator(
+        task_id="no_new_data",
     )
 
     download = KubernetesPodOperator(
@@ -64,4 +90,5 @@ with DAG(
         **ETL_VOLUME_CONFIG,
     )
 
-    find_latest_available >> download >> transform >> analytics >> load
+    find_latest_available >> check_for_new_data >> [download, no_new_data]
+    download >> transform >> analytics >> load

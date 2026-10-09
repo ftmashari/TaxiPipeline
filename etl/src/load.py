@@ -66,6 +66,17 @@ def create_tables(engine) -> None:
             )
         )
 
+        connection.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS processed_source_months (
+                    source_month DATE PRIMARY KEY,
+                    processed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                )
+                """
+            )
+        )
+
     print("Tables are ready.")
 
 
@@ -119,136 +130,156 @@ def run(year: int, month: int) -> None:
 
     engine = create_engine(DATABASE_URL)
 
-    create_tables(engine)
+    try:
+        create_tables(engine)
 
-    with engine.begin() as connection:
+        with engine.begin() as connection:
 
-        # ---------------------------------------------------------
-        # 1. Remove the previous contribution from this source file.
-        # ---------------------------------------------------------
-        connection.execute(
-            text(
-                """
-                DELETE FROM taxi_monthly_metrics
-                WHERE source_month = :source_month
-                """
-            ),
-            {
-                "source_month": source_month,
-            },
+            # ---------------------------------------------------------
+            # 1. Remove the previous contribution from this source file.
+            # ---------------------------------------------------------
+            connection.execute(
+                text(
+                    """
+                    DELETE FROM taxi_monthly_metrics
+                    WHERE source_month = :source_month
+                    """
+                ),
+                {
+                    "source_month": source_month,
+                },
+            )
+
+            # ---------------------------------------------------------
+            # 2. Insert the current contribution.
+            # ---------------------------------------------------------
+            records = df[
+                [
+                    "source_month",
+                    "pickup_date",
+                    "trips",
+                    "distance_sum",
+                    "fare_sum",
+                    "duration_sum",
+                    "total_revenue",
+                ]
+            ].to_dict(orient="records")
+
+            connection.execute(
+                text(
+                    """
+                    INSERT INTO taxi_monthly_metrics (
+                        source_month,
+                        pickup_date,
+                        trips,
+                        distance_sum,
+                        fare_sum,
+                        duration_sum,
+                        total_revenue
+                    )
+                    VALUES (
+                        :source_month,
+                        :pickup_date,
+                        :trips,
+                        :distance_sum,
+                        :fare_sum,
+                        :duration_sum,
+                        :total_revenue
+                    )
+                    """
+                ),
+                records,
+            )
+
+            # ---------------------------------------------------------
+            # 3. Remove the affected dates from the final table.
+            # ---------------------------------------------------------
+            connection.execute(
+                text(
+                    """
+                    DELETE FROM daily_taxi_metrics
+                    WHERE pickup_date = ANY(:affected_dates)
+                    """
+                ),
+                {
+                    "affected_dates": affected_dates,
+                },
+            )
+
+            # ---------------------------------------------------------
+            # 4. Recalculate affected dates from all source months.
+            # ---------------------------------------------------------
+            connection.execute(
+                text(
+                    """
+                    INSERT INTO daily_taxi_metrics (
+                        pickup_date,
+                        trips,
+                        distance_sum,
+                        fare_sum,
+                        duration_sum,
+                        total_revenue,
+                        avg_distance,
+                        avg_fare,
+                        avg_duration
+                    )
+                    SELECT
+                        pickup_date,
+
+                        SUM(trips) AS trips,
+
+                        SUM(distance_sum) AS distance_sum,
+
+                        SUM(fare_sum) AS fare_sum,
+
+                        SUM(duration_sum) AS duration_sum,
+
+                        SUM(total_revenue) AS total_revenue,
+
+                        SUM(distance_sum)
+                            / SUM(trips) AS avg_distance,
+
+                        SUM(fare_sum)
+                            / SUM(trips) AS avg_fare,
+
+                        SUM(duration_sum)
+                            / SUM(trips) AS avg_duration
+
+                    FROM taxi_monthly_metrics
+
+                    WHERE pickup_date = ANY(:affected_dates)
+
+                    GROUP BY pickup_date
+                    """
+                ),
+                {
+                    "affected_dates": affected_dates,
+                },
+            )
+
+            # ---------------------------------------------------------
+            # 5. Mark this source month as processed.
+            # ---------------------------------------------------------
+            connection.execute(
+                text(
+                    """
+                    INSERT INTO processed_source_months (source_month)
+                    VALUES (:source_month)
+                    ON CONFLICT (source_month) DO NOTHING
+                    """
+                ),
+                {
+                    "source_month": source_month
+                },
+            )
+
+        print(
+            f"Loaded {len(df):,} daily records "
+            f"from source month {source_month}"
         )
 
-        # ---------------------------------------------------------
-        # 2. Insert the current contribution.
-        # ---------------------------------------------------------
-        records = df[
-            [
-                "source_month",
-                "pickup_date",
-                "trips",
-                "distance_sum",
-                "fare_sum",
-                "duration_sum",
-                "total_revenue",
-            ]
-        ].to_dict(orient="records")
-
-        connection.execute(
-            text(
-                """
-                INSERT INTO taxi_monthly_metrics (
-                    source_month,
-                    pickup_date,
-                    trips,
-                    distance_sum,
-                    fare_sum,
-                    duration_sum,
-                    total_revenue
-                )
-                VALUES (
-                    :source_month,
-                    :pickup_date,
-                    :trips,
-                    :distance_sum,
-                    :fare_sum,
-                    :duration_sum,
-                    :total_revenue
-                )
-                """
-            ),
-            records,
-        )
-
-        # ---------------------------------------------------------
-        # 3. Remove the affected dates from the final table.
-        # ---------------------------------------------------------
-        connection.execute(
-            text(
-                """
-                DELETE FROM daily_taxi_metrics
-                WHERE pickup_date = ANY(:affected_dates)
-                """
-            ),
-            {
-                "affected_dates": affected_dates,
-            },
-        )
-
-        # ---------------------------------------------------------
-        # 4. Recalculate affected dates from all source months.
-        # ---------------------------------------------------------
-        connection.execute(
-            text(
-                """
-                INSERT INTO daily_taxi_metrics (
-                    pickup_date,
-                    trips,
-                    distance_sum,
-                    fare_sum,
-                    duration_sum,
-                    total_revenue,
-                    avg_distance,
-                    avg_fare,
-                    avg_duration
-                )
-                SELECT
-                    pickup_date,
-
-                    SUM(trips) AS trips,
-
-                    SUM(distance_sum) AS distance_sum,
-
-                    SUM(fare_sum) AS fare_sum,
-
-                    SUM(duration_sum) AS duration_sum,
-
-                    SUM(total_revenue) AS total_revenue,
-
-                    SUM(distance_sum)
-                        / SUM(trips) AS avg_distance,
-
-                    SUM(fare_sum)
-                        / SUM(trips) AS avg_fare,
-
-                    SUM(duration_sum)
-                        / SUM(trips) AS avg_duration
-
-                FROM taxi_monthly_metrics
-
-                WHERE pickup_date = ANY(:affected_dates)
-
-                GROUP BY pickup_date
-                """
-            ),
-            {
-                "affected_dates": affected_dates,
-            },
-        )
-
-    print(
-        f"Loaded {len(df):,} daily records "
-        f"from source month {source_month}"
-    )
+    finally:
+        engine.dispose()
 
 
 if __name__ == "__main__":
