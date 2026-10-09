@@ -33,10 +33,6 @@ TaxiPipeline/
 │   └── dags/
 │       ├── pod_settings.py
 │       └── taxi_pipeline.py
-├── data/
-│   ├── analytics/
-│   ├── processed/
-│   └── raw/
 ├── etl/
 │   └── src/
 │       ├── analytics.py
