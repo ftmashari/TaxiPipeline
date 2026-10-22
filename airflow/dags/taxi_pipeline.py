@@ -4,6 +4,7 @@ from airflow import DAG
 from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
 from airflow.providers.standard.operators.python import BranchPythonOperator
 from airflow.providers.standard.operators.empty import EmptyOperator
+from kubernetes.client import models as k8s
 
 from pod_settings import (
     COMMANDS,
@@ -39,7 +40,21 @@ with DAG(
         task_id="find_latest_available",
         name="taxi-find-latest",
         cmds=COMMANDS["find_latest_available"],
-        env_vars=POSTGRES_ENV_VARS,
+        env_vars=[
+            *POSTGRES_ENV_VARS,
+            k8s.V1EnvVar(
+                name="BACKFILL",
+                value="{{ dag_run.conf.get('backfill', false) | string | lower }}",
+            ),
+            k8s.V1EnvVar(
+                name="BACKFILL_YEAR",
+                value="{{ dag_run.conf.get('year', '') | string }}",
+            ),
+            k8s.V1EnvVar(
+                name="BACKFILL_MONTH",
+                value="{{ dag_run.conf.get('month', '') | string }}",
+            ),
+        ],
         do_xcom_push=True,
         **COMMON_KPO_ARGS,
     )

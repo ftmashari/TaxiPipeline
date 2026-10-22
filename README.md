@@ -120,6 +120,24 @@ source .venv/bin/activate
 airflow standalone
 ```
 
+## Airflow backfill
+
+To backfill a specific month, trigger the `taxi_pipeline` DAG with the following configuration:
+
+```json
+{
+  "backfill": true,
+  "year": 2026,
+  "month": 7
+}
+```
+
+- `backfill`: Set to `true` to enable backfill mode.
+- `year`: The year of the source data.
+- `month`: The month of the source data (1–12).
+
+Backfill mode reprocesses the specified month, replacing its existing contribution and recalculating affected daily aggregates without double-counting. For normal execution, trigger the DAG without configuration; it discovers the latest available month and skips it if already processed.
+
 ## Pipeline flow
 
 1. `find_latest_available`

@@ -81,6 +81,29 @@ def find_work() -> dict:
 
         today = date.today()
         year, month = today.year, today.month
+        
+        backfill = os.getenv("BACKFILL", "false").lower() == "true"
+
+        if backfill:
+            year = int(os.environ["BACKFILL_YEAR"])
+            month = int(os.environ["BACKFILL_MONTH"])
+
+            if not 1 <= month <= 12:
+                raise ValueError(f"Invalid backfill month: {month}")
+
+            if not is_available(year, month):
+                raise ValueError(
+                    f"Requested backfill source is unavailable: "
+                    f"{year}-{month:02d}"
+                )
+
+            print(f"Backfill requested for {year}-{month:02d}")
+            return {
+                "process": True,
+                "year": year,
+                "month": month,
+                "reason": "explicit_backfill",
+            }
 
         for _ in range(MAX_MONTHS_TO_CHECK):
             if is_available(year, month):
