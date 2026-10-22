@@ -174,7 +174,6 @@ The `processed_source_months` exists to avoid redownloading and reprocessing alr
 - The `ON CONFLICT ... DO NOTHING` pattern prevents duplicate month markers when a source month is already marked as processed.
 
 ## To do
-- Add backfill option
 - Add tests
 - Add GitHub Actions
 - Migrate to AWS
