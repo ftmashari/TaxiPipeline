@@ -143,6 +143,7 @@ Backfill mode reprocesses the specified month, replacing its existing contributi
 1. `find_latest_available`
    - checks the latest available NYC taxi Parquet file at the TLC public URL
    - returns the newest month that exists and is not already processed
+   - when backfill is enabled, selects the requested year and month and verifies that source data is available
 
 2. `download`
    - downloads the selected month into the `etl-data` PVC mounted at `/app/data`
