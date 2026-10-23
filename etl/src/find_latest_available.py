@@ -23,12 +23,32 @@ DATABASE_URL = (
 
 
 def previous_month(year: int, month: int) -> tuple[int, int]:
+    """
+    Returns the previous month and year as a tuple (year, month).
+    If the current month is January, it returns December of the previous year.
+    Args:
+        year (int): The current year.
+        month (int): The current month (1-12).
+    Returns:
+        tuple[int, int]: A tuple containing the previous year and month.
+    """
+
     if month == 1:
         return year - 1, 12
 
     return year, month - 1
 
+
 def is_available(year: int, month: int) -> bool:
+    """
+    Checks if the source file for the given year and month is available.
+    Args:
+        year (int): The year to check.
+        month (int): The month to check (1-12).
+    Returns:
+        bool: True if the source file is available, False otherwise.
+    """
+
     filename = f"yellow_tripdata_{year}-{month:02d}.parquet"
     url = f"{BASE_URL}/{filename}"
 
@@ -50,9 +70,19 @@ def is_available(year: int, month: int) -> bool:
     response.raise_for_status()
     return False
 
-def is_processed(engine, year: int, month: int) -> bool:
-    source_month = date(year, month, 1)
 
+def is_processed(engine, year: int, month: int) -> bool:
+    """
+    Checks if the source month has already been processed.
+    Args:
+        engine: SQLAlchemy engine connected to the database.
+        year (int): The year to check.
+        month (int): The month to check (1-12).
+    Returns:
+        bool: True if the source month has been processed, False otherwise.
+    """
+
+    source_month = date(year, month, 1)
     with engine.connect() as connection:
         result = connection.execute(
             text("""
@@ -66,7 +96,14 @@ def is_processed(engine, year: int, month: int) -> bool:
         )
         return bool(result.scalar())
 
+
 def find_work() -> dict:
+    """
+    Determines if there is new work to be done based on the availability of source files and whether they have already been processed.
+    Returns:
+        dict: A dictionary containing the result of the discovery process, including whether to process, the year and month to process, and the reason for the decision.
+    """
+
     engine = create_engine(DATABASE_URL)
 
     try:
