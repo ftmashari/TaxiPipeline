@@ -13,6 +13,15 @@ PROCESSED_DIR = BASE_DIR / "data" / "processed" / "yellow"
 
 
 def run(year: int, month: int) -> None:
+    """
+    Runs the ETL pipeline for the specified year and month, including downloading, transforming, analyzing, and loading the data.
+    Args:
+        year (int): The year of the trip data to process.
+        month (int): The month of the trip data to process (1-12).
+    Returns:
+        None
+    """
+    
     filename = f"yellow_tripdata_{year}-{month:02d}.parquet"
     processed_file = PROCESSED_DIR / filename
 

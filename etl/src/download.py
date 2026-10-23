@@ -15,6 +15,15 @@ RAW_DIR = (
 
 
 def download_month(year: int, month: int) -> Path | None:
+    """
+    Downloads the source file for the given year and month if it is available.
+    Args:
+        year (int): The year of the source file to download.
+        month (int): The month of the source file to download (1-12).
+    Returns:
+        Path | None: The path to the downloaded file if successful, or None if the file is not available or already exists.
+    """
+
     filename = f"yellow_tripdata_{year}-{month:02d}.parquet"
     url = f"{BASE_URL}/{filename}"
 
@@ -41,19 +50,6 @@ def download_month(year: int, month: int) -> Path | None:
     print(f"Downloaded: {output_path}")
 
     return output_path
-
-
-# def download_year(year: int) -> list[Path]:
-#     downloaded_files = []
-
-#     for month in range(1, 13):
-#         try:
-#             path = download_month(year, month)
-#             downloaded_files.append(path)
-#         except requests.HTTPError as e:
-#             print(f"Could not download {year}-{month:02d}: {e}")
-
-#     return downloaded_files
 
 
 if __name__ == "__main__":

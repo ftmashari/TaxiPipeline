@@ -14,6 +14,13 @@ COLUMNS = [
 
 
 def transform(input_file: Path, output_file: Path) -> None:
+    """
+    Transforms the raw trip data by filtering out invalid records, calculating trip duration, and saving the cleaned data to a new file.
+    Args:
+        input_file (Path): The path to the raw trip data file.
+        output_file (Path): The path where the transformed data will be saved.
+    Returns:
+        None"""
     print(f"Processing {input_file.name}")
 
     df = pd.read_parquet(input_file)

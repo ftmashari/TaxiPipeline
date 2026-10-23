@@ -29,6 +29,14 @@ DATABASE_URL = (
 
 
 def create_tables(engine) -> None:
+    """
+    Creates the necessary tables in the database if they do not already exist.
+    Args:
+        engine: SQLAlchemy engine connected to the database.
+    Returns:
+        None
+    """
+
     with engine.begin() as connection:
 
         connection.execute(
@@ -81,6 +89,15 @@ def create_tables(engine) -> None:
 
 
 def run(year: int, month: int) -> None:
+    """
+    Reads the processed trip data for the specified year and month, computes daily metrics, and loads the results into the database.
+    Args:
+        year (int): The year of the trip data to analyze.
+        month (int): The month of the trip data to analyze (1-12).
+    Returns:
+        None
+    """
+    
     filename = f"daily_metrics_{year}-{month:02d}.parquet"
     input_file = ANALYTICS_DIR / filename
 

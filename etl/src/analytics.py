@@ -11,6 +11,15 @@ ANALYTICS_DIR = BASE_DIR / "data" / "analytics" / "yellow"
 
 
 def run(year: int, month: int) -> None:
+    """
+    Reads the processed trip data for the specified year and month, computes daily metrics, and saves the results to the analytics directory.
+    Args:
+        year (int): The year of the trip data to analyze.
+        month (int): The month of the trip data to analyze (1-12).
+    Returns:
+        None
+    """
+    
     filename = f"yellow_tripdata_{year}-{month:02d}.parquet"
 
     input_file = PROCESSED_DIR / filename
