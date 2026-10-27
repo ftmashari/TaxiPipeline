@@ -11,6 +11,7 @@ This project demonstrates a practical data pipeline pattern:
 - data is persisted through a shared PVC mounted at `/app/data`
 - PostgreSQL stores aggregated analytics and processing checkpoints
 - source availability is checked against the official NYC TLC trip-data URLs
+- GitHub Actions runs the test suite for pushes and pull requests targeting `main`, and publishes an updated ETL Docker image to Docker Hub when image-related files change on a push to `main`
 
 ## Architecture
 
@@ -24,41 +25,17 @@ The pipeline is organized as follows:
 - `etl/src/analytics.py` computes daily aggregations
 - `etl/src/load.py` writes the analytics to PostgreSQL and records processed source months
 - `k8s/` contains Kubernetes manifests for storage and the PostgreSQL database
+- `.github/workflows/cicd.yml` runs the test suite on pushes and pull requests targeting `main`, and builds and publishes the ETL Docker image to Docker Hub on qualifying pushes to `main`
 
-## Folder structure
-
-```text
-TaxiPipeline/
-├── airflow/
-│   └── dags/
-│       ├── pod_settings.py
-│       └── taxi_pipeline.py
-├── etl/
-│   └── src/
-│       ├── analytics.py
-│       ├── download.py
-│       ├── find_latest_available.py
-│       ├── load.py
-│       ├── main.py
-│       └── transform.py
-├── k8s/
-│   ├── etl-data-pvc.yaml
-│   └── postgres.yaml
-├── docker-compose.yaml
-├── dockerfile
-├── requirements.txt
-└── README.md
-```
 
 ## Prerequisites
 
 Before running the project, make sure you have:
 
-- Docker
-- Docker Compose
-- Kubernetes cluster access for local or remote execution
-- `kubectl` configured if using the Kubernetes pod tasks
-- Python 3.11+ for local scripts
+- Python 3.13, matching the version used by CI and the Docker image
+- Docker and Docker Compose for container-based use
+- Kubernetes cluster access and `kubectl` only if deploying the Airflow tasks to Kubernetes
+- `pytest` to run tests; install it with `pip install -r requirements-dev.txt`
 
 ## Environment variables
 
@@ -168,6 +145,48 @@ The load step writes into these tables:
 
 The `processed_source_months` exists to avoid redownloading and reprocessing already-processed months.
 
+## Tests
+
+The test suite uses `pytest` and covers the ETL modules for downloading, transforming,
+analytics, loading, and finding the latest available source month. The GitHub Actions
+workflow runs the same suite using Python 3.13 on pushes to `main` and pull requests
+targeting `main`.
+
+Install the development dependencies from the project root:
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+Run all tests with:
+
+```bash
+pytest
+```
+
+To run a specific test file, for example:
+
+```bash
+pytest -v etl/tests/test_transform.py
+```
+
+Pytest is configured in `pytest.ini` to find tests under `etl/tests` and import ETL
+modules from `etl/src`.
+
+
+## CI/CD pipeline
+
+The GitHub Actions workflow is defined in `.github/workflows/cicd.yml`. For pushes to
+`main` and pull requests targeting `main`, it checks out the repository, sets up
+Python 3.13, installs the development dependencies, and runs `pytest`.
+
+Docker image publishing runs only for pushes to `main` when image-related files have
+changed: `Dockerfile`, `requirements.txt`, or files under `etl/src/`. The workflow logs
+in to Docker Hub, builds the image, and pushes it as
+`ftmashari/taxipipeline-etl:latest`. Configure the `DOCKERHUB_USERNAME` and
+`DOCKERHUB_TOKEN` GitHub Actions secrets in the repository settings for this step to
+succeed. Pull requests run tests but do not publish the image.
+
 ## Notes
 
 - The workflow is intentionally built to be resilient to repeated runs.
@@ -175,7 +194,5 @@ The `processed_source_months` exists to avoid redownloading and reprocessing alr
 - The `ON CONFLICT ... DO NOTHING` pattern prevents duplicate month markers when a source month is already marked as processed.
 
 ## To do
-- Add tests
-- Add GitHub Actions
 - Migrate to AWS
 - Use Terraform for resources
