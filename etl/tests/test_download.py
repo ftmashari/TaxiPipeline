@@ -1,10 +1,10 @@
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 
 import download
 
 
 def mock_month_response(monkeypatch, available=True):
-    response = Mock()
+    response = MagicMock()
     response.status_code = 200 if available else 403
     response.content = b"mocked content"
 
