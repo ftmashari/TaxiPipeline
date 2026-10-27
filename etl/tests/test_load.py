@@ -1,8 +1,7 @@
 from unittest.mock import MagicMock, patch
-import pytest
-from sqlalchemy import create_engine, text, inspect
+
 import pandas as pd
-from load import create_tables, run
+from load import run
 
 
 def test_run(tmp_path):
