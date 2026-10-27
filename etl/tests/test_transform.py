@@ -35,6 +35,24 @@ def test_transform(tmp_path):
     # Read the output file and check the results
     result_df = pd.read_parquet(output_file)
 
-    # Check that rows with NaN values are dropped
-    assert len(result_df) == 2
-    assert result_df.isnull().sum().sum() == 0
+    expected_df = pd.DataFrame({
+        "tpep_pickup_datetime": pd.to_datetime([
+            "2026-10-22 10:00:00",
+            "2026-10-22 13:00:00"
+        ]),
+        "tpep_dropoff_datetime": pd.to_datetime([
+            "2026-10-22 10:30:00",
+            "2026-10-22 13:30:00"
+        ]),
+        "passenger_count": [1, 3],
+        "trip_distance": [5.0, 4.0],
+        "fare_amount": [15.0, 20.0],
+        "total_amount": [20.0, 25.0],
+        "trip_duration_minutes": [30.0, 30.0],
+        "pickup_date": pd.to_datetime([
+            "2026-10-22",
+            "2026-10-22"
+        ]).date
+    })
+
+    pd.testing.assert_frame_equal(result_df, expected_df)
