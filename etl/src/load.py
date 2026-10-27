@@ -90,7 +90,7 @@ def create_tables(engine) -> None:
 
 def run(year: int, month: int) -> None:
     """
-    Reads the processed trip data for the specified year and month, computes daily metrics, and loads the results into the database.
+    Reads the processed trip data for the specified year and month and loads the results into the database.
     Args:
         year (int): The year of the trip data to analyze.
         month (int): The month of the trip data to analyze (1-12).
